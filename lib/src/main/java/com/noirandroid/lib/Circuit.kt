@@ -65,6 +65,10 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         }
     }
 
+    init {
+        System.loadLibrary("noir_java");
+    }
+
     fun setupSrs(srs_path: String?) {
         num_points = Noir.setup_srs(bytecode, srs_path)
     }

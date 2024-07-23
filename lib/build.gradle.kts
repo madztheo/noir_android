@@ -10,7 +10,7 @@ android {
     compileSdk = 33
 
     defaultConfig {
-        minSdk = 33
+        minSdk = 23
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -52,7 +52,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v0.30.0-2"
+                version = "v0.30.0-3"
             }
         }
     }
@@ -108,7 +108,7 @@ tasks.register<Copy>("copyRustLibs") {
     } else {
         // Download the .so file from a remote server
         download.run {
-            src("https://github.com/madztheo/noir_android/releases/download/v0.30.0-2/libnoir_java.so")
+            src("https://github.com/madztheo/noir_android/releases/download/v0.30.0-3/libnoir_java.so")
             dest("src/main/jniLibs/arm64-v8a")
             overwrite(false)
         }

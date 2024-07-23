@@ -16,6 +16,16 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    packagingOptions {
+        doNotStrip("**/*.so")
+    }
+
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -52,7 +62,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v0.30.0-6"
+                version = "v0.30.0-7"
             }
         }
     }
@@ -108,7 +118,7 @@ tasks.register<Copy>("copyRustLibs") {
     } else {
         // Download the .so file from a remote server
         download.run {
-            src("https://github.com/madztheo/noir_android/releases/download/v0.30.0-6/libnoir_java.so")
+            src("https://github.com/madztheo/noir_android/releases/download/v0.30.0-7/libnoir_java.so")
             dest("src/main/jniLibs/arm64-v8a")
             overwrite(false)
         }

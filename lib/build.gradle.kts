@@ -52,7 +52,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v0.30.0-3"
+                version = "v0.30.0-4"
             }
         }
     }

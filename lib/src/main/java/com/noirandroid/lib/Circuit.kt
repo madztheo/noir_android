@@ -1,8 +1,6 @@
 package com.noirandroid.lib
 
 import com.google.gson.Gson
-import noir.Noir
-import noir.Proof
 import android.util.Log
 
 data class CircuitManifest(

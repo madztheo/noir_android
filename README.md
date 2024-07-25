@@ -55,7 +55,7 @@ circuit.setupSrs(srsPath)
 To generate a proof, you can call the `prove` method and pass in the inputs for the proof and the proof type. It will return a `Proof` object containing the proof with its public inputs and the verification key.
 
 ```kotlin
-import noir.Proof
+import com.noirandroid.lib.Proof
 import java.util.HashMap
 import android.util.Log
 

@@ -14,7 +14,7 @@ use noir_rs::{
 };
 
 #[no_mangle]
-pub extern "system" fn Java_noir_Noir_setup_1srs<'local>(
+pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
@@ -45,7 +45,7 @@ pub extern "system" fn Java_noir_Noir_setup_1srs<'local>(
 
 
 #[no_mangle]
-pub extern "system" fn Java_noir_Noir_prove<'local>(
+pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
@@ -125,7 +125,7 @@ pub extern "system" fn Java_noir_Noir_prove<'local>(
         .expect("Failed to create Java string for vk");
 
     let proof_class = env
-        .find_class("noir/Proof")
+        .find_class("com/noirandroid/lib/Proof")
         .expect("Failed to find Proof class");
     env.new_object(
         proof_class,
@@ -137,7 +137,7 @@ pub extern "system" fn Java_noir_Noir_prove<'local>(
 }
 
 #[no_mangle]
-pub extern "system" fn Java_noir_Noir_verify<'local>(
+pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,

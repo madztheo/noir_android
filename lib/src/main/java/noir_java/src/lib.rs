@@ -140,18 +140,10 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
 pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
-    circuit_bytecode_jstr: JString<'local>,
     mut proof_jobject: JObject<'local>,
     proof_type_jstr: JString<'local>,
     num_points_jstr: JString<'local>,
 ) -> jboolean {
-    let circuit_bytecode = env
-        .get_string(&circuit_bytecode_jstr)
-        .expect("Failed to get string from JString")
-        .to_str()
-        .expect("Failed to convert Java string to Rust string")
-        .to_owned();
-
     let proof_field = env
         .get_field(&mut proof_jobject, "proof", "Ljava/lang/String;")
         .expect("Failed to get proof field")
@@ -198,9 +190,9 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
         .expect("Failed to parse num_points");
 
     let verdict = if proof_type == "honk" {
-        verify_honk(circuit_bytecode, proof, verification_key).expect("Verification failed")
+        verify_honk(proof, verification_key).expect("Verification failed")
     } else {
-        verify(circuit_bytecode, proof, verification_key, num_points).expect("Verification failed")
+        verify(proof, verification_key, num_points).expect("Verification failed")
     };
 
     jboolean::from(verdict)

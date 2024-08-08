@@ -83,7 +83,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
-        return Noir.verify(bytecode, proof, proofType, num_points.toString())
+        return Noir.verify(proof, proofType, num_points.toString())
     }
 
     private fun flattenMultiDimensionalArray(array: List<Any>): List<Any> {
@@ -152,11 +152,10 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
                         var flattenedArray = flattenMultiDimensionalArray(value as List<Any>)
                         // Compute the expected length of the array
                         var totalLength = computeTotalLengthOfArray(parameter.type)
-                        val array = flattenedArray as List<Any>
-                        if (array.size != totalLength) {
+                        if (flattenedArray.size != totalLength) {
                             throw IllegalArgumentException("Expected array of length ${parameter.type.length} for parameter: ${parameter.name}")
                         }
-                        for (element in array) {
+                        for (element in flattenedArray) {
                             if (element is Double) {
                                 witness[index.toString()] = "0x${(element.toLong()).toString(16)}"
                                 index++
@@ -181,8 +180,8 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
                     if (value is Map<*, *>) {
                         val struct = value as Map<String, Any>
                         val structWitness = generateWitnessMap(struct, parameter.type.fields!!, index)
-                        for ((key, value) in structWitness) {
-                            witness[key] = value
+                        for ((key, witnessValue) in structWitness) {
+                            witness[key] = witnessValue
                             index++
                         }
                     } else {

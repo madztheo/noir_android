@@ -15,7 +15,7 @@ maven { url 'https://jitpack.io' }
 Then, in your app level `build.gradle` file, add the following in your `dependencies` block:
 
 ```gradle
-implementation("com.github.madztheo:noir_android:0.34.0-1")
+implementation("com.github.madztheo:noir_android:0.35.0-1")
 ```
 
 After this your project should be able to use the library.

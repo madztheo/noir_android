@@ -58,7 +58,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v0.35.0-1"
+                version = "v0.36.0-1"
             }
         }
     }
@@ -114,7 +114,7 @@ tasks.register<Copy>("copyRustLibs") {
     } else {
         // Download the .so file from the GitHub release
         download.run {
-            src("https://github.com/madztheo/noir_android/releases/download/v0.35.0-1/libnoir_java_arm64-v8a.so")
+            src("https://github.com/madztheo/noir_android/releases/download/v0.36.0-1/libnoir_java_arm64-v8a.so")
             dest("src/main/jniLibs/arm64-v8a/libnoir_java.so")
             overwrite(false)
         }

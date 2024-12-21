@@ -67,23 +67,23 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         System.loadLibrary("noir_java");
     }
 
-    fun setupSrs(srs_path: String?) {
-        num_points = Noir.setup_srs(bytecode, srs_path)
+    fun setupSrs(srs_path: String?, recursive: Boolean?) {
+        num_points = Noir.setup_srs(bytecode, srs_path, recursive)
     }
 
-    fun prove(initialWitness: Map<String, Any>, proofType: String): Proof {
+    fun prove(initialWitness: Map<String, Any>, proofType: String?, recursive: Boolean?): Proof {
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
         val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
-        return Noir.prove(bytecode, witness, proofType, num_points.toString())
+        return Noir.prove(bytecode, witness, proofType ?: "honk", recursive)
     }
 
-    fun verify(proof: Proof, proofType: String): Boolean {
+    fun verify(proof: Proof, proofType: String?): Boolean {
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
-        return Noir.verify(proof, proofType, num_points.toString())
+        return Noir.verify(proof, proofType ?: "honk")
     }
 
     private fun flattenMultiDimensionalArray(array: List<Any>): List<Any> {

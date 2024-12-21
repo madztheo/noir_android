@@ -15,7 +15,7 @@ maven { url 'https://jitpack.io' }
 Then, in your app level `build.gradle` file, add the following in your `dependencies` block:
 
 ```gradle
-implementation("com.github.madztheo:noir_android:0.36.0-1")
+implementation("com.github.madztheo:noir_android:1.0.0-beta.0-1")
 ```
 
 After this your project should be able to use the library.
@@ -64,13 +64,9 @@ inputs["a"] = 5
 inputs["b"] = 3
 inputs["result"] = 15
 
-// For UltraPlonk proofs
-val proof: Proof = circuit.prove(inputs, "plonk")
+val proof: Proof = circuit.prove(inputs)
 Log.d("Proof", proof.proof)
 Log.d("Verification key", proof.vk)
-
-// For Honk proofs
-val proof: Proof = circuit.prove(inputs, "honk")
 ```
 
 ### Verify a proof
@@ -78,9 +74,5 @@ val proof: Proof = circuit.prove(inputs, "honk")
 To verify a proof, you can call the `verify` method and pass in the proof object and the proof type. It will return a boolean indicating whether the proof is valid or not.
 
 ```kotlin
-// For UltraPlonk proofs
-val isValid = circuit.verify(proof, "plonk")
-
-// For Honk proofs
-val isValid = circuit.verify(proof, "honk")
+val isValid = circuit.verify(proof)
 ```

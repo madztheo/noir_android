@@ -5,11 +5,11 @@ use jni::sys::{jboolean, jobject, jint};
 use jni::JNIEnv;
 use noir_rs::{
     native_types::{Witness, WitnessMap},
-    prove::prove,
-    prove::prove_honk,
-    verify::verify,
-    verify::verify_honk,
-    srs::setup_srs,
+    barretenberg::{
+        prove::prove_ultra_honk,
+        verify::verify_ultra_honk,
+        srs::setup_srs,
+    },
     FieldElement
 };
 
@@ -19,6 +19,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
     srs_path_jstr: JString<'local>,
+    recursive: jboolean,
 ) -> jint {
     let circuit_bytecode = env
         .get_string(&circuit_bytecode_jstr)
@@ -38,7 +39,9 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'
         ),
     };
 
-    let num_points = setup_srs(circuit_bytecode, srs_path.as_deref()).expect("Failed to setup srs");
+    let recursive_bool = recursive == 1;
+
+    let num_points = setup_srs(&circuit_bytecode, srs_path.as_deref(), recursive_bool).expect("Failed to setup srs");
 
     jint::try_from(num_points).unwrap()
 }
@@ -51,7 +54,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
     circuit_bytecode_jstr: JString<'local>,
     witness_jobject: JObject<'local>,
     proof_type_jstr: JString<'local>,
-    num_points_jstr: JString<'local>,
+    recursive: jboolean,
 ) -> jobject {
     // Use more descriptive variable names and handle errors gracefully
     let witness_map = match env.get_map(&witness_jobject) {
@@ -76,13 +79,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         .expect("Failed to convert proof type to Rust string")
         .to_owned();
 
-    let num_points = env
-        .get_string(&num_points_jstr)
-        .expect("Failed to get num_points string")
-        .to_str()
-        .expect("Failed to convert num_points to Rust string")
-        .parse()
-        .expect("Failed to parse num_points");
+    let recursive_bool = recursive == 1;
 
     let mut witness_map = WitnessMap::new();
 
@@ -109,9 +106,9 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
     }
 
     let (proof, vk) = if proof_type == "honk" { 
-        prove_honk(circuit_bytecode, witness_map).expect("Proof generation failed") 
+        prove_ultra_honk(&circuit_bytecode, witness_map, recursive_bool).expect("Proof generation failed") 
     } else { 
-        prove(circuit_bytecode, witness_map, num_points).expect("Proof generation failed") 
+        panic!("Honk is the only proof type supported for now");
     };
 
     let proof_str = hex::encode(proof);
@@ -141,8 +138,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     mut proof_jobject: JObject<'local>,
-    proof_type_jstr: JString<'local>,
-    num_points_jstr: JString<'local>,
+    proof_type_jstr: JString<'local>
 ) -> jboolean {
     let proof_field = env
         .get_field(&mut proof_jobject, "proof", "Ljava/lang/String;")
@@ -181,18 +177,10 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
         .expect("Failed to convert proof type to Rust string")
         .to_owned();
 
-    let num_points = env
-        .get_string(&num_points_jstr)
-        .expect("Failed to get num_points string")
-        .to_str()
-        .expect("Failed to convert num_points to Rust string")
-        .parse()
-        .expect("Failed to parse num_points");
-
     let verdict = if proof_type == "honk" {
-        verify_honk(proof, verification_key).expect("Verification failed")
+        verify_ultra_honk(proof, verification_key).expect("Verification failed")
     } else {
-        verify(proof, verification_key, num_points).expect("Verification failed")
+        panic!("Ultra honk is the only proof type supported for now");
     };
 
     jboolean::from(verdict)

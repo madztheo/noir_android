@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 jni = "0.21.1"
-noir_rs = { git = "https://github.com/zkpassport/noir_rs.git", branch = "v1.0.0-beta.0", features = ["barretenberg"] }
+noir_rs = { git = "https://github.com/zkpassport/noir_rs.git", branch = "v1.0.0-beta.1", features = ["barretenberg"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 hex = "0.4.3"

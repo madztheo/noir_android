@@ -86,11 +86,22 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         return Noir.verify(proof, proofType ?: "honk")
     }
 
-    private fun flattenMultiDimensionalArray(array: List<Any>): List<Any> {
+    private fun flattenMultiDimensionalArray(array: List<Any>, elementType: Type): List<Any> {
         val flattenedArray = mutableListOf<Any>()
         for (element in array) {
             if (element is List<*>) {
-                flattenedArray.addAll(flattenMultiDimensionalArray(element as List<Any>))
+                flattenedArray.addAll(flattenMultiDimensionalArray(element as List<Any>, elementType.type!!))
+            } else if(elementType.kind == "string" && element is String) {
+                val length = elementType.length!!.toInt()
+                for (i in 0 until length) {
+                    if (i < element.length) {
+                        flattenedArray.add(element.get(i).toDouble())
+                    } else {
+                        // Pad with 0 if the string is shorter than the expected length
+                        // Can happen with strings containing the null character for example
+                        flattenedArray.add(0.0)
+                    }
+                }
             } else {
                 flattenedArray.add(element)
             }
@@ -137,23 +148,23 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
                     else if (value is String) {
                         // Check the number is in hexadecimal format
                         if (!value.startsWith("0x")) {
-                            throw IllegalArgumentException("Expected hexadecimal number for parameter: ${parameter.name}")
+                            throw IllegalArgumentException("Expected hexadecimal number for parameter: ${parameter.name}. Got ${value.javaClass}")
                         }
                         witness[index.toString()] = value
                         index++
                     
                     } else {
-                        throw IllegalArgumentException("Expected integer for parameter: ${parameter.name}")
+                        throw IllegalArgumentException("Expected integer for parameter: ${parameter.name}. Got ${value.javaClass}")
                     }
                 }
                 "array" -> {
                     if (value is List<*>) {
                         // Flatten the multi-dimensional array (if not multi-dimensional, it will return the same array)
-                        var flattenedArray = flattenMultiDimensionalArray(value as List<Any>)
+                        var flattenedArray = flattenMultiDimensionalArray(value as List<Any>, parameter.type.type!!)
                         // Compute the expected length of the array
                         var totalLength = computeTotalLengthOfArray(parameter.type)
                         if (flattenedArray.size != totalLength) {
-                            throw IllegalArgumentException("Expected array of length ${parameter.type.length} for parameter: ${parameter.name}")
+                            throw IllegalArgumentException("Expected array of length ${parameter.type.length} for parameter: ${parameter.name}. Instead got ${flattenedArray.size}")
                         }
                         for (element in flattenedArray) {
                             if (element is Double) {
@@ -168,12 +179,12 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
                                 index++
                             
                             } else {
-                                throw IllegalArgumentException("Unexpected array type for parameter: ${parameter.name}")
+                                throw IllegalArgumentException("Unexpected array type for parameter: ${parameter.name}. Got ${element.javaClass}")
                             }
 
                         }
                     } else {
-                        throw IllegalArgumentException("Expected array of integers for parameter: ${parameter.name}")
+                        throw IllegalArgumentException("Expected array of integers for parameter: ${parameter.name}. Got ${value.javaClass}")
                     }
                 }
                 "struct" -> {
@@ -185,7 +196,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
                             index++
                         }
                     } else {
-                        throw IllegalArgumentException("Expected struct for parameter: ${parameter.name}")
+                        throw IllegalArgumentException("Expected struct for parameter: ${parameter.name}. Got ${value.javaClass}")
                     }
                 }
                 "string" -> {
@@ -193,17 +204,17 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
                         // Transform the string into a byte array
                         val array = value.toByteArray()
                         if (array.size != parameter.type.length!!.toInt()) {
-                            throw IllegalArgumentException("Expected string of length ${parameter.type.length} for parameter: ${parameter.name}")
+                            throw IllegalArgumentException("Expected string of length ${parameter.type.length} for parameter: ${parameter.name}. Instead got ${array.size}")
                         }
                         for (element in array) {
                             witness[index.toString()] = "0x${(element.toLong()).toString(16)}"
                             index++
                         }
                     } else {
-                        throw IllegalArgumentException("Expected string for parameter: ${parameter.name}")
+                        throw IllegalArgumentException("Expected string for parameter: ${parameter.name}. Got ${value.javaClass}")
                     }
                 }
-                else -> throw IllegalArgumentException("Unsupported parameter type: ${parameter.type}")
+                else -> throw IllegalArgumentException("Unsupported parameter type: ${parameter.type}. Kind: ${parameter.type.kind}")
             }
         }
         return witness

@@ -1,7 +1,7 @@
 use std::alloc::System;
 
 use jni::objects::{JClass, JObject, JString};
-use jni::sys::{jboolean, jobject, jint};
+use jni::sys::{jboolean, jobject, jint, JNI_TRUE};
 use jni::JNIEnv;
 use noir_rs::{
     native_types::{Witness, WitnessMap},
@@ -39,7 +39,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'
         ),
     };
 
-    let recursive_bool = recursive == 1;
+    let recursive_bool = recursive == JNI_TRUE;
 
     let num_points = setup_srs(&circuit_bytecode, srs_path.as_deref(), recursive_bool).expect("Failed to setup srs");
 
@@ -79,7 +79,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         .expect("Failed to convert proof type to Rust string")
         .to_owned();
 
-    let recursive_bool = recursive == 1;
+    let recursive_bool = recursive == JNI_TRUE;
 
     let mut witness_map = WitnessMap::new();
 

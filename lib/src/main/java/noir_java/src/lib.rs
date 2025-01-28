@@ -19,7 +19,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
     srs_path_jstr: JString<'local>,
-    recursive: jboolean,
+    recursive: JString<'local>,
 ) -> jint {
     let circuit_bytecode = env
         .get_string(&circuit_bytecode_jstr)
@@ -39,7 +39,12 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'
         ),
     };
 
-    let recursive_bool = recursive == JNI_TRUE;
+    let recursive_bool = env
+        .get_string(&recursive)
+        .expect("Failed to get string from JString")
+        .to_str()
+        .expect("Failed to convert recursive to Rust string")
+        .to_owned() == "1";
 
     let num_points = setup_srs(&circuit_bytecode, srs_path.as_deref(), recursive_bool).expect("Failed to setup srs");
 
@@ -54,7 +59,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
     circuit_bytecode_jstr: JString<'local>,
     witness_jobject: JObject<'local>,
     proof_type_jstr: JString<'local>,
-    recursive: jboolean,
+    recursive: JString<'local>,
 ) -> jobject {
     // Use more descriptive variable names and handle errors gracefully
     let witness_map = match env.get_map(&witness_jobject) {
@@ -79,7 +84,12 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         .expect("Failed to convert proof type to Rust string")
         .to_owned();
 
-    let recursive_bool = recursive == JNI_TRUE;
+    let recursive_bool = env
+        .get_string(&recursive)
+        .expect("Failed to get string from JString")
+        .to_str()
+        .expect("Failed to convert recursive to Rust string")
+        .to_owned() == "1";
 
     let mut witness_map = WitnessMap::new();
 

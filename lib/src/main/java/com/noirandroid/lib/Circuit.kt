@@ -68,7 +68,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
     }
 
     fun setupSrs(srs_path: String?, recursive: Boolean?) {
-        num_points = Noir.setup_srs(bytecode, srs_path, recursive)
+        num_points = Noir.setup_srs(bytecode, srs_path, if (recursive ?: false) "1" else "0")
     }
 
     fun prove(initialWitness: Map<String, Any>, proofType: String?, recursive: Boolean?): Proof {
@@ -76,7 +76,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
             throw IllegalArgumentException("SRS not set up")
         }
         val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
-        return Noir.prove(bytecode, witness, proofType ?: "honk", recursive)
+        return Noir.prove(bytecode, witness, proofType ?: "honk", if (recursive ?: false) "1" else "0")
     }
 
     fun verify(proof: Proof, proofType: String?): Boolean {

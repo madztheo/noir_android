@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "NoirAndroid"
 include(":lib")
+include(":app")

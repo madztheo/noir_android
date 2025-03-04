@@ -13,6 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
-**/*.so
+libnoir_java.so
 .idea
 .vscode

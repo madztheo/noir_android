@@ -58,7 +58,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v1.0.0-beta.3-1"
+                version = "v1.0.0-beta.3-2"
             }
         }
     }
@@ -114,12 +114,15 @@ tasks.register<Copy>("copyRustLibs") {
     } else {
         // Download the .so file from the GitHub release
         download.run {
-            src("https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.3-1/libnoir_java_arm64-v8a.so")
+            src("https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.3-2/libnoir_java_arm64-v8a.so")
             dest("src/main/jniLibs/arm64-v8a/libnoir_java.so")
             overwrite(false)
         }
     }
     include("lib${rustLibName}.so")
+    // Already included in React Native apps but not in bare Android app
+    // so we need to include it manually
+    include("libc++_shared.so")
 }
 
 tasks.whenTaskAdded {

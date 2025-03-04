@@ -64,11 +64,25 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
     }
 
     init {
-        System.loadLibrary("noir_java");
+        try {
+            System.loadLibrary("noir_java")
+        } catch (e: UnsatisfiedLinkError) {
+            // Log the error but don't crash - test classes can handle the error
+            System.err.println("Failed to load noir_java native library: ${e.message}")
+            e.printStackTrace()
+        } catch (e: Exception) {
+            System.err.println("Exception during noir_java library loading: ${e.message}")
+            e.printStackTrace()
+        }
     }
 
     fun setupSrs(srs_path: String?, recursive: Boolean?) {
         num_points = Noir.setup_srs(bytecode, srs_path, if (recursive ?: false) "1" else "0")
+    }
+
+    fun execute(initialWitness: Map<String, Any>): Array<String> {
+        val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
+        return Noir.execute(bytecode, witness)
     }
 
     fun prove(initialWitness: Map<String, Any>, proofType: String?, recursive: Boolean?): Proof {

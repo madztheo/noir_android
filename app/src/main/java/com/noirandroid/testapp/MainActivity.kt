@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() {
         val statusTextView = findViewById<TextView>(R.id.status_text)
         
         try {
-            val circuit = Circuit.fromJsonManifest(testCircuitJson)
+            val circuit = Circuit.fromJsonManifest(testCircuitJson, 40, false)
             val witness = circuit.execute(mapOf("a" to "0x2", "b" to "0x3", "result" to "0x6"))
             val a = witness[0].last()
             val b = witness[1].last()
@@ -27,6 +27,17 @@ class MainActivity : AppCompatActivity() {
             result_str += "a: $a\n"
             result_str += "b: $b\n"
             result_str += "result: $result\n"
+            circuit.setupSrs()
+            val proof = circuit.prove(mapOf("a" to "0x2", "b" to "0x3", "result" to "0x6"), "honk")
+            // Truncate the proof to 100 characters
+            val truncatedProof = proof.substring(0, Math.min(proof.length, 100))
+            result_str += "Proof: $truncatedProof\n"
+            val vkey = circuit.getVerificationKey()
+            // Truncate the verification key to 100 characters
+            val truncatedVkey = vkey.substring(0, Math.min(vkey.length, 100))
+            result_str += "Verification Key: $truncatedVkey\n"
+            val verified = circuit.verify(proof, vkey, "honk")
+            result_str += "Verified: $verified\n"
             statusTextView.text = result_str
         } catch (e: Exception) {
             statusTextView.text = "JNI Test Failed: ${e.message}"

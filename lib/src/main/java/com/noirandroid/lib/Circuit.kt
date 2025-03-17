@@ -54,12 +54,12 @@ data class FileMap(
     val path: String
 )
 
-class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0) {
+class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0, public var size: Int = 0, public var recursive: Boolean = false) {
 
     companion object {
-        fun fromJsonManifest(jsonManifest: String): Circuit {
+        fun fromJsonManifest(jsonManifest: String, size: Int? = null, recursive: Boolean? = null): Circuit {
             val manifest: CircuitManifest = Gson().fromJson(jsonManifest, CircuitManifest::class.java)
-            return Circuit(manifest.bytecode, manifest)
+            return Circuit(manifest.bytecode, manifest, 0, size ?: 0, recursive ?: false)
         }
     }
 
@@ -76,8 +76,12 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         }
     }
 
-    fun setupSrs(srs_path: String?, recursive: Boolean?) {
-        num_points = Noir.setup_srs(bytecode, srs_path, if (recursive ?: false) "1" else "0")
+    fun setupSrs(srs_path: String? = null) {
+        if (size > 0) {
+            num_points = Noir.setup_srs(size, srs_path)
+        } else {
+            num_points = Noir.setup_srs_from_bytecode(bytecode, srs_path, if (recursive ?: false) "1" else "0")
+        }
     }
 
     fun execute(initialWitness: Map<String, Any>): Array<String> {
@@ -85,19 +89,23 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         return Noir.execute(bytecode, witness)
     }
 
-    fun prove(initialWitness: Map<String, Any>, proofType: String?, recursive: Boolean?): Proof {
+    fun prove(initialWitness: Map<String, Any>, proofType: String? = "honk"): String {
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
         val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
-        return Noir.prove(bytecode, witness, proofType ?: "honk", if (recursive ?: false) "1" else "0")
+        return Noir.prove(bytecode, witness, proofType, if (recursive ?: false) "1" else "0")
     }
 
-    fun verify(proof: Proof, proofType: String?): Boolean {
+    fun verify(proof: String, vk: String, proofType: String? = "honk"): Boolean {
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
-        return Noir.verify(proof, proofType ?: "honk")
+        return Noir.verify(proof, vk, proofType)
+    }
+
+    fun getVerificationKey(): String {
+        return Noir.get_verification_key(bytecode, if (recursive ?: false) "1" else "0")
     }
 
     private fun flattenMultiDimensionalArray(array: List<Any>, elementType: Type): List<Any> {

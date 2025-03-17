@@ -77,10 +77,8 @@ Log.d("Proof", proof)
 
 ### Verify a proof
 
-To verify a proof, you can call the `verify` method and pass in the proof and the verification key. It will return a boolean indicating whether the proof is valid or not. You can get the verification key by calling the `getVerificationKey` method.
+To verify a proof, you can call the `verify` method and pass in the proof. It will return a boolean indicating whether the proof is valid or not.
 
 ```kotlin
-val vk: String = circuit.getVerificationKey()
-Log.d("Verification key", vk)
-val isValid = circuit.verify(proof, vk)
+val isValid = circuit.verify(proof)
 ```

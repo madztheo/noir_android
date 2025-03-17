@@ -97,11 +97,11 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         return Noir.prove(bytecode, witness, proofType, if (recursive ?: false) "1" else "0")
     }
 
-    fun verify(proof: String, vk: String, proofType: String? = "honk"): Boolean {
+    fun verify(proof: String, vk: String? = null, proofType: String? = "honk"): Boolean {
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
-        return Noir.verify(proof, vk, proofType)
+        return Noir.verify(proof, vk ?: getVerificationKey(), proofType)
     }
 
     fun getVerificationKey(): String {

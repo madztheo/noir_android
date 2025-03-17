@@ -59,7 +59,7 @@ circuit.setupSrs(srsPath)
 
 ### Generate a proof
 
-To generate a proof, you can call the `prove` method and pass in the inputs for the proof and the proof type. It will return a `Proof` object containing the proof with its public inputs and the verification key.
+To generate a proof, you can call the `prove` method and pass in the inputs for the proof and the proof type. It will return the proof with its public inputs.
 
 ```kotlin
 import com.noirandroid.lib.Proof
@@ -73,14 +73,14 @@ inputs["result"] = 15
 
 val proof: String = circuit.prove(inputs)
 Log.d("Proof", proof)
-val vk: String = circuit.getVerificationKey()
-Log.d("Verification key", vk)
 ```
 
 ### Verify a proof
 
-To verify a proof, you can call the `verify` method and pass in the proof and the verification key. It will return a boolean indicating whether the proof is valid or not.
+To verify a proof, you can call the `verify` method and pass in the proof and the verification key. It will return a boolean indicating whether the proof is valid or not. You can get the verification key by calling the `getVerificationKey` method.
 
 ```kotlin
+val vk: String = circuit.getVerificationKey()
+Log.d("Verification key", vk)
 val isValid = circuit.verify(proof, vk)
 ```

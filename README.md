@@ -34,6 +34,13 @@ val circuitData = File(path).readText()
 val circuit = Circuit.fromJsonManifest(circuitData)
 ```
 
+**Note:** You can also specify the circuit size if you already know it. This will speed up the setup process (and consume less memory), by skipping the construction of the circuit from the bytecode.
+
+```kotlin
+// Assuming the circuit has 40 constraints
+val circuit = Circuit.fromJsonManifest(circuitData, 40)
+```
+
 ### Setup the SRS
 
 Before you can generate proofs, you need to setup the SRS for the circuit. You can do so by calling the `setupSrs` function.
@@ -64,15 +71,16 @@ inputs["a"] = 5
 inputs["b"] = 3
 inputs["result"] = 15
 
-val proof: Proof = circuit.prove(inputs)
-Log.d("Proof", proof.proof)
-Log.d("Verification key", proof.vk)
+val proof: String = circuit.prove(inputs)
+Log.d("Proof", proof)
+val vk: String = circuit.getVerificationKey()
+Log.d("Verification key", vk)
 ```
 
 ### Verify a proof
 
-To verify a proof, you can call the `verify` method and pass in the proof object and the proof type. It will return a boolean indicating whether the proof is valid or not.
+To verify a proof, you can call the `verify` method and pass in the proof and the verification key. It will return a boolean indicating whether the proof is valid or not.
 
 ```kotlin
-val isValid = circuit.verify(proof)
+val isValid = circuit.verify(proof, vk)
 ```

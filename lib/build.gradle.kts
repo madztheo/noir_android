@@ -58,7 +58,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v1.0.0-beta.3-4"
+                version = "v1.0.0-beta.3-5"
             }
         }
     }
@@ -94,6 +94,7 @@ tasks.register<Exec>("buildRust") {
     environment("PATH", "$path:$androidHome/cmdline-tools/latest/bin")
     environment("PATH", "$path:$toolchain/bin")
     environment("CMAKE_TOOLCHAIN_FILE_aarch64_linux_android", "$androidNdkHome/build/cmake/android.toolchain.cmake")
+    environment("CMAKE_TOOLCHAIN_FILE", "$androidNdkHome/build/cmake/android.toolchain.cmake")
     environment("ANDROID_ABI", "arm64-v8a")
     // Android arm64
     commandLine("cargo", "build", "--release", "--target", "aarch64-linux-android", "-vvvv")
@@ -114,7 +115,7 @@ tasks.register<Copy>("copyRustLibs") {
     } else {
         // Download the .so file from the GitHub release
         download.run {
-            src("https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.3-4/libnoir_java_arm64-v8a.so")
+            src("https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.3-5/libnoir_java_arm64-v8a.so")
             dest("src/main/jniLibs/arm64-v8a/libnoir_java.so")
             overwrite(false)
         }

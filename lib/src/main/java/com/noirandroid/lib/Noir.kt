@@ -16,16 +16,16 @@ class Noir {
             }
         }
         
-        external fun prove(circuitBytecode: String, initialWitness: Map<String, String>, proofType: String?, recursive: String?): String
+        external fun prove(circuitBytecode: String, initialWitness: Map<String, String>, vk: String, proofType: String?): String
 
         external fun verify(proof: String, vk: String, proofType: String?): Boolean
 
         external fun setup_srs(size: Int, srsPath: String?): Int
 
-        external fun setup_srs_from_bytecode(circuitBytecode: String, srsPath: String?, recursive: String?): Int
+        external fun setup_srs_from_bytecode(circuitBytecode: String, srsPath: String?): Int
         
         external fun execute(circuitBytecode: String, initialWitness: Map<String, String>): Array<String>
 
-        external fun get_verification_key(circuitBytecode: String, recursive: String?): String
+        external fun get_verification_key(circuitBytecode: String, proofType: String?): String
     }
 }

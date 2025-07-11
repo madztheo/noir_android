@@ -2,8 +2,8 @@
 set -e
 
 # Set the NDK path
-export ANDROID_NDK_HOME="$HOME/Library/Android/sdk/ndk/26.3.11579264"
 export NDK_VERSION="26.3.11579264"
+export ANDROID_NDK_HOME="$HOME/Library/Android/sdk/ndk/$NDK_VERSION"
 export HOST_TAG="darwin-x86_64"
 
 # Add NDK tools to PATH

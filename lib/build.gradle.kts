@@ -75,27 +75,10 @@ tasks.register<Exec>("buildRust") {
     val hostTag = System.getenv("HOST_TAG")
     val path = System.getenv("PATH")
     val androidNdkHome = "$androidHome/ndk/$ndkVersion"
-    val toolchain = "$androidNdkHome/toolchains/llvm/prebuilt/$hostTag"
-    val target = "aarch64-linux-android"
-    val api = "33"
-    val cc = "$toolchain/bin/$target$api-clang"
 
     environment("ANDROID_NDK_HOME", androidNdkHome)
-    environment("TOOLCHAIN", toolchain)
-    environment("TARGET", target)
-    environment("API", api)
-    environment("AR", "$toolchain/bin/llvm-ar")
-    environment("CC", cc)
-    environment("AS", cc)
-    environment("CXX", "$toolchain/bin/$target$api-clang++")
-    environment("LD", "$toolchain/bin/ld")
-    environment("RANLIB", "$toolchain/bin/llvm-ranlib")
-    environment("STRIP", "$toolchain/bin/llvm-strip")
-    environment("PATH", "$path:$androidHome/cmdline-tools/latest/bin")
-    environment("PATH", "$path:$toolchain/bin")
-    environment("CMAKE_TOOLCHAIN_FILE_aarch64_linux_android", "$androidNdkHome/build/cmake/android.toolchain.cmake")
-    environment("CMAKE_TOOLCHAIN_FILE", "$androidNdkHome/build/cmake/android.toolchain.cmake")
-    environment("ANDROID_ABI", "arm64-v8a")
+    environment("PATH", "$path:$androidNdkHome/toolchains/llvm/prebuilt/$hostTag/bin")
+    environment("CMAKE_TOOLCHAIN_FILE", "./android-toolchain.cmake")
     // Android arm64
     commandLine("cargo", "build", "--release", "--target", "aarch64-linux-android", "-vvvv")
     // Android arm

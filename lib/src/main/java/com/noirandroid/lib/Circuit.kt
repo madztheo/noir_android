@@ -54,12 +54,12 @@ data class FileMap(
     val path: String
 )
 
-class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0, public var size: Int = 0, public var recursive: Boolean = false) {
+class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0, public var size: Int = 0) {
 
     companion object {
-        fun fromJsonManifest(jsonManifest: String, size: Int? = null, recursive: Boolean? = null): Circuit {
+        fun fromJsonManifest(jsonManifest: String, size: Int? = null): Circuit {
             val manifest: CircuitManifest = Gson().fromJson(jsonManifest, CircuitManifest::class.java)
-            return Circuit(manifest.bytecode, manifest, 0, size ?: 0, recursive ?: false)
+            return Circuit(manifest.bytecode, manifest, 0, size ?: 0)
         }
     }
 
@@ -77,35 +77,60 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
     }
 
     fun setupSrs(srs_path: String? = null) {
-        if (size > 0) {
-            num_points = Noir.setup_srs(size, srs_path)
-        } else {
-            num_points = Noir.setup_srs_from_bytecode(bytecode, srs_path, if (recursive ?: false) "1" else "0")
+        try {
+            if (size > 0) {
+                num_points = Noir.setup_srs(size, srs_path)
+            } else {
+                num_points = Noir.setup_srs_from_bytecode(bytecode, srs_path)
+            }
+        } catch (e: Throwable) {
+            Log.e("Circuit", "Failed to setup SRS: ${e.message}", e)
+            throw RuntimeException("SRS setup failed: ${e.message}", e)
         }
     }
 
     fun execute(initialWitness: Map<String, Any>): Array<String> {
-        val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
-        return Noir.execute(bytecode, witness)
+        try {
+            val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
+            return Noir.execute(bytecode, witness)
+        } catch (e: Throwable) {
+            Log.e("Circuit", "Failed to execute circuit: ${e.message}", e)
+            throw RuntimeException("Circuit execution failed: ${e.message}", e)
+        }
     }
 
-    fun prove(initialWitness: Map<String, Any>, proofType: String? = "honk"): String {
+    fun prove(initialWitness: Map<String, Any>, vk: String? = null, proofType: String? = "ultra_honk"): String {
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
-        val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
-        return Noir.prove(bytecode, witness, proofType, if (recursive ?: false) "1" else "0")
+        try {
+            val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
+            return Noir.prove(bytecode, witness, vk ?: getVerificationKey(), proofType)
+        } catch (e: Throwable) {
+            Log.e("Circuit", "Failed to prove circuit: ${e.message}", e)
+            throw RuntimeException("Circuit proving failed: ${e.message}", e)
+        }
     }
 
-    fun verify(proof: String, vk: String? = null, proofType: String? = "honk"): Boolean {
+    fun verify(proof: String, vk: String? = null, proofType: String? = "ultra_honk"): Boolean {
         if (num_points == 0) {
             throw IllegalArgumentException("SRS not set up")
         }
-        return Noir.verify(proof, vk ?: getVerificationKey(), proofType)
+        try {
+            return Noir.verify(proof, vk ?: getVerificationKey(), proofType)
+        } catch (e: Throwable) {
+            Log.e("Circuit", "Failed to verify proof: ${e.message}", e)
+            throw RuntimeException("Proof verification failed: ${e.message}", e)
+        }
     }
 
-    fun getVerificationKey(): String {
-        return Noir.get_verification_key(bytecode, if (recursive ?: false) "1" else "0")
+    fun getVerificationKey(proofType: String? = "ultra_honk"): String {
+        try {
+            return Noir.get_verification_key(bytecode, proofType)
+        } catch (e: Throwable) {
+            Log.e("Circuit", "Failed to get verification key: ${e.message}", e)
+            throw RuntimeException("Failed to get verification key: ${e.message}", e)
+        }
     }
 
     private fun flattenMultiDimensionalArray(array: List<Any>, elementType: Type): List<Any> {

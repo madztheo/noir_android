@@ -4,10 +4,9 @@ use jni::JNIEnv;
 use noir_rs::{
     native_types::{Witness, WitnessMap},
     barretenberg::{
-        prove::prove_ultra_honk,
-        verify::verify_ultra_honk,
+        prove::{prove_ultra_honk, prove_ultra_honk_keccak},
+        verify::{verify_ultra_honk, get_ultra_honk_verification_key, verify_ultra_honk_keccak, get_ultra_honk_keccak_verification_key},
         srs::{setup_srs, setup_srs_from_bytecode},
-        utils::get_honk_verification_key
     },
     FieldElement,
     AcirField,
@@ -109,8 +108,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs_1
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
-    srs_path_jstr: JString<'local>,
-    recursive: JString<'local>,
+    srs_path_jstr: JString<'local>
 ) -> jint {
     init_logger();
     debug!("Setting up SRS from bytecode");
@@ -155,23 +153,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs_1
         },
     };
 
-    let recursive_bool = env
-        .get_string(&recursive)
-        .map_err(|e| {
-            error!("Failed to get recursive string: {:?}", e);
-            e
-        })
-        .expect("Failed to get string from JString")
-        .to_str()
-        .map_err(|e| {
-            error!("Failed to convert recursive to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert recursive to Rust string")
-        .to_owned() == "1";
-    info!("Recursive mode: {}", recursive_bool);
-
-    let num_points = match setup_srs_from_bytecode(&circuit_bytecode, srs_path.as_deref(), recursive_bool) {
+    let num_points = match setup_srs_from_bytecode(&circuit_bytecode, srs_path.as_deref(), false) {
         Ok(num) => {
             info!("SRS setup from bytecode successful with {} points", num);
             num
@@ -268,8 +250,6 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
                 e
             })
             .expect("Failed to convert value to Rust string");
-
-        debug!("Witness: key={}, value={}", key, value);
         
         let witness_key = match key.parse() {
             Ok(k) => Witness(k),
@@ -371,8 +351,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
     witness_jobject: JObject<'local>,
+    vk_jstr: JString<'local>,
     proof_type_jstr: JString<'local>,
-    recursive: JString<'local>,
 ) -> jobject {
     init_logger();
     info!("Starting proof generation");
@@ -428,21 +408,32 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         .to_owned();
     info!("Using proof type: {}", proof_type);
 
-    let recursive_bool = env
-        .get_string(&recursive)
+    let vk_str = env
+        .get_string(&vk_jstr)
         .map_err(|e| {
-            error!("Failed to get recursive string: {:?}", e);
+            error!("Failed to get verification key string: {:?}", e);
             e
         })
-        .expect("Failed to get string from JString")
+        .expect("Failed to get verification key string")
         .to_str()
         .map_err(|e| {
-            error!("Failed to convert recursive to Rust string: {:?}", e);
+            error!("Failed to convert verification key to Rust string: {:?}", e);
             e
         })
-        .expect("Failed to convert recursive to Rust string")
-        .to_owned() == "1";
-    info!("Recursive mode: {}", recursive_bool);
+        .expect("Failed to convert verification key to Rust string")
+        .to_owned();
+    debug!("Verification key length: {}", vk_str.len());
+
+    let verification_key = match hex::decode(vk_str) {
+        Ok(vk) => {
+            debug!("Successfully decoded verification key, size: {} bytes", vk.len());
+            vk
+        },
+        Err(e) => {
+            error!("Failed to decode verification key: {:?}", e);
+            panic!("Failed to decode verification key: {:?}", e)
+        }
+    };
 
     let mut witness_map = WitnessMap::new();
     let mut witness_count = 0;
@@ -480,8 +471,6 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
                 e
             })
             .expect("Failed to convert value to Rust string");
-
-        debug!("Witness: key={}, value={}", key, value);
         
         let witness_key = match key.parse() {
             Ok(k) => Witness(k),
@@ -503,9 +492,21 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
     
     info!("Loaded {} witness values", witness_count);
 
-    let proof = if proof_type == "honk" { 
-        info!("Generating HONK proof");
-        match prove_ultra_honk(&circuit_bytecode, witness_map, recursive_bool) {
+    let proof = if proof_type == "ultra_honk" { 
+        info!("Generating UltraHonk proof");
+        match prove_ultra_honk(&circuit_bytecode, witness_map, verification_key) {
+            Ok(p) => {
+                info!("Proof generation successful, proof size: {} bytes", p.len());
+                p
+            },
+            Err(e) => {
+                error!("Proof generation failed: {:?}", e);
+                panic!("Proof generation failed: {:?}", e)
+            }
+        }
+    } else if proof_type == "ultra_honk_keccak" {
+        info!("Generating UltraHonkKeccak proof");
+        match prove_ultra_honk_keccak(&circuit_bytecode, witness_map, verification_key, false) {
             Ok(p) => {
                 info!("Proof generation successful, proof size: {} bytes", p.len());
                 p
@@ -517,7 +518,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         }
     } else { 
         error!("Unsupported proof type: {}", proof_type);
-        panic!("Honk is the only proof type supported for now");
+        panic!("Unsupported proof type: {}", proof_type)
     };
 
     let proof_str = hex::encode(&proof);
@@ -617,8 +618,19 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
         .to_owned();
     info!("Using proof type: {}", proof_type);
 
-    let verdict = if proof_type == "honk" {
+    let verdict = if proof_type == "ultra_honk" {
         match verify_ultra_honk(proof, verification_key) {
+            Ok(v) => {
+                info!("Verification complete, result: {}", v);
+                v
+            },  
+            Err(e) => {
+                error!("Verification failed with error: {:?}", e);
+                panic!("Verification failed: {:?}", e)
+            }
+        }
+    } else if proof_type == "ultra_honk_keccak" {
+        match verify_ultra_honk_keccak(proof, verification_key, false) {
             Ok(v) => {
                 info!("Verification complete, result: {}", v);
                 v
@@ -630,7 +642,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
         }
     } else {
         error!("Unsupported proof type: {}", proof_type);
-        panic!("Ultra honk is the only proof type supported for now");
+        panic!("Ultra honk and Ultra honk keccak are the only proof types supported for now");
     };
 
     jboolean::from(verdict)
@@ -641,7 +653,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
-    recursive: JString<'local>,
+    proof_type_jstr: JString<'local>
 ) -> jobject {
     init_logger();
     info!("Getting verification key");
@@ -662,31 +674,48 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
         .to_owned();
     debug!("Circuit bytecode length: {}", circuit_bytecode.len());
 
-    let recursive_bool = env
-        .get_string(&recursive)
+
+    let proof_type = env
+        .get_string(&proof_type_jstr)
         .map_err(|e| {
-            error!("Failed to get recursive string: {:?}", e);
+            error!("Failed to get proof type string: {:?}", e);
             e
         })
-        .expect("Failed to get string from JString")
+        .expect("Failed to get proof type string")
         .to_str()
         .map_err(|e| {
-            error!("Failed to convert recursive to Rust string: {:?}", e);
+            error!("Failed to convert proof type to Rust string: {:?}", e);
             e
         })
-        .expect("Failed to convert recursive to Rust string")
-        .to_owned() == "1";
-    info!("Recursive mode: {}", recursive_bool);
+        .expect("Failed to convert proof type to Rust string")
+        .to_owned();
+    info!("Using proof type: {}", proof_type);
 
-    let vk = match get_honk_verification_key(&circuit_bytecode, recursive_bool) {
-        Ok(key) => {
-            info!("Successfully retrieved verification key, size: {} bytes", key.len());
-            key
-        },
-        Err(e) => {
-            error!("Failed to get verification key: {:?}", e);
-            panic!("Failed to get verification key: {:?}", e)
+    let vk = if proof_type == "ultra_honk" {
+        match get_ultra_honk_verification_key(&circuit_bytecode) {
+            Ok(key) => {
+                info!("Successfully retrieved verification key, size: {} bytes", key.len());
+                key
+            },
+            Err(e) => {
+                error!("Failed to get verification key: {:?}", e);
+                panic!("Failed to get verification key: {:?}", e)
+            }
         }
+    } else if proof_type == "ultra_honk_keccak" {
+        match get_ultra_honk_keccak_verification_key(&circuit_bytecode, false) {
+            Ok(key) => {
+                info!("Successfully retrieved verification key, size: {} bytes", key.len());
+                key
+            },
+            Err(e) => {
+                error!("Failed to get verification key: {:?}", e);
+                panic!("Failed to get verification key: {:?}", e)
+            }
+        }
+    } else {
+        error!("Unsupported proof type: {}", proof_type);
+        panic!("Ultra honk and Ultra honk keccak are the only proof types supported for now");
     };
 
     let vk_str = hex::encode(&vk);

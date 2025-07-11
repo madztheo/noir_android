@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() {
         val statusTextView = findViewById<TextView>(R.id.status_text)
         
         try {
-            val circuit = Circuit.fromJsonManifest(testCircuitJson, 40)
+            val circuit = Circuit.fromJsonManifest(testCircuitJson, 4096)
             val witness = circuit.execute(mapOf("a" to "0x2", "b" to "0x3", "result" to "0x6"))
             val a = witness[0].last()
             val b = witness[1].last()

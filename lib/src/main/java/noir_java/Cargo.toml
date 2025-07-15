@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 jni = "0.21.1"
-noir_rs = { git = "https://github.com/zkpassport/noir_rs.git", tag = "v1.0.0-beta.7-3", features = ["barretenberg","android-compat"] }
+noir_rs = { git = "https://github.com/zkpassport/noir_rs.git", tag = "v1.0.0-beta.8-1", features = ["barretenberg","android-compat"] }
 hex = "0.4.3"
 log = "0.4"
 android_logger = "0.13"

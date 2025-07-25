@@ -353,9 +353,13 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
     witness_jobject: JObject<'local>,
     vk_jstr: JString<'local>,
     proof_type_jstr: JString<'local>,
+    low_memory_mode: jboolean
 ) -> jobject {
     init_logger();
     info!("Starting proof generation");
+    
+    let use_low_memory = low_memory_mode != 0;
+    debug!("Low memory mode: {}", use_low_memory);
     
     // Use more descriptive variable names and handle errors gracefully
     let witness_map = match env.get_map(&witness_jobject) {
@@ -494,7 +498,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
 
     let proof = if proof_type == "ultra_honk" { 
         info!("Generating UltraHonk proof");
-        match prove_ultra_honk(&circuit_bytecode, witness_map, verification_key) {
+        match prove_ultra_honk(&circuit_bytecode, witness_map, verification_key, use_low_memory) {
             Ok(p) => {
                 info!("Proof generation successful, proof size: {} bytes", p.len());
                 p
@@ -506,7 +510,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         }
     } else if proof_type == "ultra_honk_keccak" {
         info!("Generating UltraHonkKeccak proof");
-        match prove_ultra_honk_keccak(&circuit_bytecode, witness_map, verification_key, false) {
+        match prove_ultra_honk_keccak(&circuit_bytecode, witness_map, verification_key, false, use_low_memory) {
             Ok(p) => {
                 info!("Proof generation successful, proof size: {} bytes", p.len());
                 p
@@ -653,10 +657,14 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
-    proof_type_jstr: JString<'local>
+    proof_type_jstr: JString<'local>,
+    low_memory_mode: jboolean
 ) -> jobject {
     init_logger();
     info!("Getting verification key");
+    
+    let use_low_memory = low_memory_mode != 0;
+    debug!("Low memory mode: {}", use_low_memory);
     
     let circuit_bytecode = env
         .get_string(&circuit_bytecode_jstr)
@@ -692,7 +700,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
     info!("Using proof type: {}", proof_type);
 
     let vk = if proof_type == "ultra_honk" {
-        match get_ultra_honk_verification_key(&circuit_bytecode) {
+        match get_ultra_honk_verification_key(&circuit_bytecode, use_low_memory) {
             Ok(key) => {
                 info!("Successfully retrieved verification key, size: {} bytes", key.len());
                 key
@@ -703,7 +711,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
             }
         }
     } else if proof_type == "ultra_honk_keccak" {
-        match get_ultra_honk_keccak_verification_key(&circuit_bytecode, false) {
+        match get_ultra_honk_keccak_verification_key(&circuit_bytecode, false, use_low_memory) {
             Ok(key) => {
                 info!("Successfully retrieved verification key, size: {} bytes", key.len());
                 key

@@ -54,12 +54,12 @@ data class FileMap(
     val path: String
 )
 
-class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0, public var size: Int = 0) {
+class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0, public var size: Int = 0, public var lowMemoryMode: Boolean = false) {
 
     companion object {
-        fun fromJsonManifest(jsonManifest: String, size: Int? = null): Circuit {
+        fun fromJsonManifest(jsonManifest: String, size: Int? = null, lowMemoryMode: Boolean = false): Circuit {
             val manifest: CircuitManifest = Gson().fromJson(jsonManifest, CircuitManifest::class.java)
-            return Circuit(manifest.bytecode, manifest, 0, size ?: 0)
+            return Circuit(manifest.bytecode, manifest, 0, size ?: 0, lowMemoryMode)
         }
     }
 
@@ -105,7 +105,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         }
         try {
             val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
-            return Noir.prove(bytecode, witness, vk ?: getVerificationKey(), proofType)
+            return Noir.prove(bytecode, witness, vk ?: getVerificationKey(), proofType, lowMemoryMode)
         } catch (e: Throwable) {
             Log.e("Circuit", "Failed to prove circuit: ${e.message}", e)
             throw RuntimeException("Circuit proving failed: ${e.message}", e)
@@ -126,7 +126,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
 
     fun getVerificationKey(proofType: String? = "ultra_honk"): String {
         try {
-            return Noir.get_verification_key(bytecode, proofType)
+            return Noir.get_verification_key(bytecode, proofType, lowMemoryMode)
         } catch (e: Throwable) {
             Log.e("Circuit", "Failed to get verification key: ${e.message}", e)
             throw RuntimeException("Failed to get verification key: ${e.message}", e)

@@ -20,6 +20,13 @@ mod test_utils;
 #[cfg(test)]
 mod noir_tests;
 
+// Helper function to throw Java exceptions
+fn throw_exception(env: &mut JNIEnv, exception_class: &str, message: &str) {
+    if let Err(e) = env.throw_new(exception_class, message) {
+        error!("Failed to throw Java exception: {:?}", e);
+    }
+}
+
 // Initialize Android logger if not already initialized
 fn init_logger() {
     #[cfg(target_os = "android")]
@@ -68,21 +75,24 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'
             None
         },
         false => {
-            let path = env.get_string(&srs_path_jstr)
-                .map_err(|e| {
+            let path = match env.get_string(&srs_path_jstr) {
+                Ok(s) => s,
+                Err(e) => {
                     error!("Failed to get srs path string: {:?}", e);
-                    e
-                })
-                .expect("Failed to get srs path string")
-                .to_str()
-                .map_err(|e| {
+                    throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get srs path string: {:?}", e));
+                    return -1;
+                }
+            };
+            let path_str = match path.to_str() {
+                Ok(s) => s.to_owned(),
+                Err(e) => {
                     error!("Failed to convert srs path to Rust string: {:?}", e);
-                    e
-                })
-                .expect("Failed to convert srs path to Rust string")
-                .to_owned();
-            debug!("Using SRS path: {}", path);
-            Some(path)
+                    throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert srs path to Rust string: {:?}", e));
+                    return -1;
+                }
+            };
+            debug!("Using SRS path: {}", path_str);
+            Some(path_str)
         },
     };
 
@@ -93,14 +103,19 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs<'
         },
         Err(e) => {
             error!("Failed to setup SRS: {:?}", e);
-            panic!("Failed to setup SRS: {:?}", e);
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to setup SRS: {:?}", e));
+            return -1;
         }
     };
 
-    jint::try_from(num_points).unwrap_or_else(|e| {
-        error!("Failed to convert num_points to jint: {:?}", e);
-        panic!("Failed to convert num_points to jint: {:?}", e)
-    })
+    match jint::try_from(num_points) {
+        Ok(result) => result,
+        Err(e) => {
+            error!("Failed to convert num_points to jint: {:?}", e);
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert num_points to jint: {:?}", e));
+            -1
+        }
+    }
 }
 
 #[no_mangle]
@@ -113,20 +128,22 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs_1
     init_logger();
     debug!("Setting up SRS from bytecode");
     
-    let circuit_bytecode = env
-        .get_string(&circuit_bytecode_jstr)
-        .map_err(|e| {
+    let circuit_bytecode = match env.get_string(&circuit_bytecode_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get bytecode string: {:?}", e);
-            e
-        })
-        .expect("Failed to get string from JString")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get bytecode string: {:?}", e));
+            return -1;
+        }
+    };
+    let circuit_bytecode = match circuit_bytecode.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert bytecode to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert Java string to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert bytecode to Rust string: {:?}", e));
+            return -1;
+        }
+    };
     debug!("Circuit bytecode length: {}", circuit_bytecode.len());
 
     let srs_path = match srs_path_jstr.is_null() {
@@ -135,21 +152,24 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs_1
             None
         },
         false => {
-            let path = env.get_string(&srs_path_jstr)
-                .map_err(|e| {
+            let path = match env.get_string(&srs_path_jstr) {
+                Ok(s) => s,
+                Err(e) => {
                     error!("Failed to get srs path string: {:?}", e);
-                    e
-                })
-                .expect("Failed to get srs path string")
-                .to_str()
-                .map_err(|e| {
+                    throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get srs path string: {:?}", e));
+                    return -1;
+                }
+            };
+            let path_str = match path.to_str() {
+                Ok(s) => s.to_owned(),
+                Err(e) => {
                     error!("Failed to convert srs path to Rust string: {:?}", e);
-                    e
-                })
-                .expect("Failed to convert srs path to Rust string")
-                .to_owned();
-            debug!("Using SRS path: {}", path);
-            Some(path)
+                    throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert srs path to Rust string: {:?}", e));
+                    return -1;
+                }
+            };
+            debug!("Using SRS path: {}", path_str);
+            Some(path_str)
         },
     };
 
@@ -160,14 +180,19 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_setup_1srs_1
         },
         Err(e) => {
             error!("Failed to setup SRS from bytecode: {:?}", e);
-            panic!("Failed to setup SRS from bytecode: {:?}", e);
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to setup SRS from bytecode: {:?}", e));
+            return -1;
         }
     };
 
-    jint::try_from(num_points).unwrap_or_else(|e| {
-        error!("Failed to convert num_points to jint: {:?}", e);
-        panic!("Failed to convert num_points to jint: {:?}", e)
-    })
+    match jint::try_from(num_points) {
+        Ok(result) => result,
+        Err(e) => {
+            error!("Failed to convert num_points to jint: {:?}", e);
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert num_points to jint: {:?}", e));
+            -1
+        }
+    }
 }
 
 #[no_mangle]
@@ -187,31 +212,35 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
         },
         Err(e) => {
             error!("Failed to get witness map: {:?}", e);
-            panic!("Failed to get witness map: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get witness map: {:?}", e));
+            return std::ptr::null_mut();
         },
     };
     let mut witness_iter = match witness_map.iter(&mut env) {
         Ok(iter) => iter,
         Err(e) => {
             error!("Failed to create iterator for witness map: {:?}", e);
-            panic!("Failed to create iterator: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to create iterator: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
 
-    let circuit_bytecode = env
-        .get_string(&circuit_bytecode_jstr)
-        .map_err(|e| {
+    let circuit_bytecode = match env.get_string(&circuit_bytecode_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get bytecode string: {:?}", e);
-            e
-        })
-        .expect("Failed to get string from JString")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get bytecode string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
+    let circuit_bytecode = match circuit_bytecode.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert bytecode to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert Java string to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert bytecode to Rust string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
     debug!("Circuit bytecode length: {}", circuit_bytecode.len());
 
     let mut witness_map = WitnessMap::new();
@@ -222,48 +251,56 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
         let key_str = key.into();
         let value_str = value.into();
 
-        let key_jstr = env.get_string(&key_str)
-            .map_err(|e| {
+        let key_jstr = match env.get_string(&key_str) {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to get key string: {:?}", e);
-                e
-            })
-            .expect("Failed to get key string");
-        let value_jstr = env
-            .get_string(&value_str)
-            .map_err(|e| {
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get key string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
+        let value_jstr = match env.get_string(&value_str) {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to get value string: {:?}", e);
-                e
-            })
-            .expect("Failed to get value string");
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get value string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
 
-        let key = key_jstr
-            .to_str()
-            .map_err(|e| {
+        let key = match key_jstr.to_str() {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to convert key to Rust string: {:?}", e);
-                e
-            })
-            .expect("Failed to convert key to Rust string");
-        let value = value_jstr
-            .to_str()
-            .map_err(|e| {
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert key to Rust string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
+        let value = match value_jstr.to_str() {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to convert value to Rust string: {:?}", e);
-                e
-            })
-            .expect("Failed to convert value to Rust string");
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert value to Rust string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
         
         let witness_key = match key.parse() {
             Ok(k) => Witness(k),
             Err(e) => {
                 error!("Failed to parse witness key '{}': {:?}", key, e);
-                panic!("Failed to parse key: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to parse witness key '{}': {:?}", key, e));
+                return std::ptr::null_mut();
             }
         };
         
-        let field_element = match FieldElement::try_from_str(value).unwrap_or_else(|| {
-            error!("Failed to parse witness value '{}': not a valid field element", value);
-            panic!("Failed to parse value: not a valid field element")
-        }) {
-            fe => fe,
+        let field_element = match FieldElement::try_from_str(value) {
+            Some(fe) => fe,
+            None => {
+                error!("Failed to parse witness value '{}': not a valid field element", value);
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to parse witness value '{}': not a valid field element", value));
+                return std::ptr::null_mut();
+            }
         };
 
         witness_map.insert(witness_key, field_element);
@@ -278,7 +315,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
         },
         Err(e) => {
             error!("Circuit execution failed: {:?}", e);
-            panic!("Circuit execution failed: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Circuit execution failed: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
     
@@ -289,7 +327,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
         },
         None => {
             error!("No witness found in execution result");
-            panic!("No witness found")
+            throw_exception(&mut env, "java/lang/RuntimeException", "No witness found in execution result");
+            return std::ptr::null_mut();
         }
     };
     
@@ -301,7 +340,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
         Ok(class) => class,
         Err(e) => {
             error!("Failed to find String class: {:?}", e);
-            panic!("Failed to find String class: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to find String class: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
     
@@ -309,7 +349,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
         Ok(s) => s,
         Err(e) => {
             error!("Failed to create empty string: {:?}", e);
-            panic!("Failed to create empty string: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to create empty string: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
     
@@ -321,7 +362,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
         Ok(arr) => arr,
         Err(e) => {
             error!("Failed to create string array: {:?}", e);
-            panic!("Failed to create string array: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to create string array: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
 
@@ -331,13 +373,15 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_execute<'loc
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to create Java string for witness value {}: {:?}", i, e);
-                panic!("Failed to create Java string: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to create Java string for witness value {}: {:?}", i, e));
+                return std::ptr::null_mut();
             }
         };
         
         if let Err(e) = env.set_object_array_element(&string_array, i as i32, &jstring) {
             error!("Failed to set array element at index {}: {:?}", i, e);
-            panic!("Failed to set array element: {:?}", e);
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to set array element at index {}: {:?}", i, e));
+            return std::ptr::null_mut();
         }
     }
 
@@ -369,63 +413,71 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         },
         Err(e) => {
             error!("Failed to get witness map: {:?}", e);
-            panic!("Failed to get witness map: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get witness map: {:?}", e));
+            return std::ptr::null_mut();
         },
     };
     let mut witness_iter = match witness_map.iter(&mut env) {
         Ok(iter) => iter,
         Err(e) => {
             error!("Failed to create iterator for witness map: {:?}", e);
-            panic!("Failed to create iterator: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to create iterator: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
 
-    let circuit_bytecode = env
-        .get_string(&circuit_bytecode_jstr)
-        .map_err(|e| {
+    let circuit_bytecode = match env.get_string(&circuit_bytecode_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get bytecode string: {:?}", e);
-            e
-        })
-        .expect("Failed to get string from JString")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get bytecode string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
+    let circuit_bytecode = match circuit_bytecode.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert bytecode to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert Java string to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert bytecode to Rust string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
     debug!("Circuit bytecode length: {}", circuit_bytecode.len());
 
-    let proof_type = env
-        .get_string(&proof_type_jstr)
-        .map_err(|e| {
+    let proof_type = match env.get_string(&proof_type_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get proof type string: {:?}", e);
-            e
-        })
-        .expect("Failed to get proof type string")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get proof type string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
+    let proof_type = match proof_type.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert proof type to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert proof type to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert proof type to Rust string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
     info!("Using proof type: {}", proof_type);
 
-    let vk_str = env
-        .get_string(&vk_jstr)
-        .map_err(|e| {
+    let vk_str = match env.get_string(&vk_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get verification key string: {:?}", e);
-            e
-        })
-        .expect("Failed to get verification key string")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get verification key string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
+    let vk_str = match vk_str.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert verification key to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert verification key to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert verification key to Rust string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
     debug!("Verification key length: {}", vk_str.len());
 
     let verification_key = match hex::decode(vk_str) {
@@ -435,7 +487,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         },
         Err(e) => {
             error!("Failed to decode verification key: {:?}", e);
-            panic!("Failed to decode verification key: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to decode verification key: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
 
@@ -447,48 +500,56 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         let key_str = key.into();
         let value_str = value.into();
 
-        let key_jstr = env.get_string(&key_str)
-            .map_err(|e| {
+        let key_jstr = match env.get_string(&key_str) {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to get key string: {:?}", e);
-                e
-            })
-            .expect("Failed to get key string");
-        let value_jstr = env
-            .get_string(&value_str)
-            .map_err(|e| {
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get key string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
+        let value_jstr = match env.get_string(&value_str) {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to get value string: {:?}", e);
-                e
-            })
-            .expect("Failed to get value string");
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get value string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
 
-        let key = key_jstr
-            .to_str()
-            .map_err(|e| {
+        let key = match key_jstr.to_str() {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to convert key to Rust string: {:?}", e);
-                e
-            })
-            .expect("Failed to convert key to Rust string");
-        let value = value_jstr
-            .to_str()
-            .map_err(|e| {
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert key to Rust string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
+        let value = match value_jstr.to_str() {
+            Ok(s) => s,
+            Err(e) => {
                 error!("Failed to convert value to Rust string: {:?}", e);
-                e
-            })
-            .expect("Failed to convert value to Rust string");
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert value to Rust string: {:?}", e));
+                return std::ptr::null_mut();
+            }
+        };
         
         let witness_key = match key.parse() {
             Ok(k) => Witness(k),
             Err(e) => {
                 error!("Failed to parse witness key '{}': {:?}", key, e);
-                panic!("Failed to parse key: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to parse witness key '{}': {:?}", key, e));
+                return std::ptr::null_mut();
             }
         };
         
-        let field_element = match FieldElement::try_from_str(value).unwrap_or_else(|| {
-            error!("Failed to parse witness value '{}': not a valid field element", value);
-            panic!("Failed to parse value: not a valid field element")
-        }) {
-            fe => fe,
+        let field_element = match FieldElement::try_from_str(value) {
+            Some(fe) => fe,
+            None => {
+                error!("Failed to parse witness value '{}': not a valid field element", value);
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to parse witness value '{}': not a valid field element", value));
+                return std::ptr::null_mut();
+            }
         };
 
         witness_map.insert(witness_key, field_element);
@@ -505,7 +566,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
             },
             Err(e) => {
                 error!("Proof generation failed: {:?}", e);
-                panic!("Proof generation failed: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Proof generation failed: {:?}", e));
+                return std::ptr::null_mut();
             }
         }
     } else if proof_type == "ultra_honk_keccak" {
@@ -517,12 +579,14 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
             },
             Err(e) => {
                 error!("Proof generation failed: {:?}", e);
-                panic!("Proof generation failed: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Proof generation failed: {:?}", e));
+                return std::ptr::null_mut();
             }
         }
     } else { 
         error!("Unsupported proof type: {}", proof_type);
-        panic!("Unsupported proof type: {}", proof_type)
+        throw_exception(&mut env, "java/lang/IllegalArgumentException", &format!("Unsupported proof type: {}", proof_type));
+        return std::ptr::null_mut();
     };
 
     let proof_str = hex::encode(&proof);
@@ -533,7 +597,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         Ok(s) => s,
         Err(e) => {
             error!("Failed to create Java string for proof: {:?}", e);
-            panic!("Failed to create Java string for proof: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to create Java string for proof: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
 
@@ -552,36 +617,40 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
     init_logger();
     info!("Starting proof verification");
     
-    let proof_str = env
-        .get_string(&proof_jstr)
-        .map_err(|e| {
+    let proof_str = match env.get_string(&proof_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get proof string: {:?}", e);
-            e
-        })
-        .expect("Failed to get proof string")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get proof string: {:?}", e));
+            return 0;
+        }
+    };
+    let proof_str = match proof_str.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert proof to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert proof to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert proof to Rust string: {:?}", e));
+            return 0;
+        }
+    };
     debug!("Proof string length: {}", proof_str.len());
 
-    let vk_str = env
-        .get_string(&vk_jstr)
-        .map_err(|e| {
+    let vk_str = match env.get_string(&vk_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get verification key string: {:?}", e);
-            e
-        })
-        .expect("Failed to get verification key string")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get verification key string: {:?}", e));
+            return 0;
+        }
+    };
+    let vk_str = match vk_str.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert verification key to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert verification key to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert verification key to Rust string: {:?}", e));
+            return 0;
+        }
+    };
     debug!("Verification key length: {}", vk_str.len());
 
     let proof = match hex::decode(proof_str) {
@@ -591,7 +660,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
         },
         Err(e) => {
             error!("Failed to decode proof: {:?}", e);
-            panic!("Failed to decode proof: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to decode proof: {:?}", e));
+            return 0;
         }
     };
     
@@ -602,24 +672,27 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
         },
         Err(e) => {
             error!("Failed to decode verification key: {:?}", e);
-            panic!("Failed to decode verification key: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to decode verification key: {:?}", e));
+            return 0;
         }
     };
 
-    let proof_type = env
-        .get_string(&proof_type_jstr)
-        .map_err(|e| {
+    let proof_type = match env.get_string(&proof_type_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get proof type string: {:?}", e);
-            e
-        })
-        .expect("Failed to get proof type string")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get proof type string: {:?}", e));
+            return 0;
+        }
+    };
+    let proof_type = match proof_type.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert proof type to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert proof type to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert proof type to Rust string: {:?}", e));
+            return 0;
+        }
+    };
     info!("Using proof type: {}", proof_type);
 
     let verdict = if proof_type == "ultra_honk" {
@@ -630,7 +703,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
             },  
             Err(e) => {
                 error!("Verification failed with error: {:?}", e);
-                panic!("Verification failed: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Verification failed: {:?}", e));
+                return 0;
             }
         }
     } else if proof_type == "ultra_honk_keccak" {
@@ -641,12 +715,14 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_verify<'loca
             },
             Err(e) => {
                 error!("Verification failed with error: {:?}", e);
-                panic!("Verification failed: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Verification failed: {:?}", e));
+                return 0;
             }
         }
     } else {
         error!("Unsupported proof type: {}", proof_type);
-        panic!("Ultra honk and Ultra honk keccak are the only proof types supported for now");
+        throw_exception(&mut env, "java/lang/IllegalArgumentException", "Ultra honk and Ultra honk keccak are the only proof types supported for now");
+        return 0;
     };
 
     jboolean::from(verdict)
@@ -666,37 +742,40 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
     let use_low_memory = low_memory_mode != 0;
     debug!("Low memory mode: {}", use_low_memory);
     
-    let circuit_bytecode = env
-        .get_string(&circuit_bytecode_jstr)
-        .map_err(|e| {
+    let circuit_bytecode = match env.get_string(&circuit_bytecode_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get bytecode string: {:?}", e);
-            e
-        })
-        .expect("Failed to get string from JString")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get bytecode string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
+    let circuit_bytecode = match circuit_bytecode.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert bytecode to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert Java string to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert bytecode to Rust string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
     debug!("Circuit bytecode length: {}", circuit_bytecode.len());
 
-
-    let proof_type = env
-        .get_string(&proof_type_jstr)
-        .map_err(|e| {
+    let proof_type = match env.get_string(&proof_type_jstr) {
+        Ok(s) => s,
+        Err(e) => {
             error!("Failed to get proof type string: {:?}", e);
-            e
-        })
-        .expect("Failed to get proof type string")
-        .to_str()
-        .map_err(|e| {
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get proof type string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
+    let proof_type = match proof_type.to_str() {
+        Ok(s) => s.to_owned(),
+        Err(e) => {
             error!("Failed to convert proof type to Rust string: {:?}", e);
-            e
-        })
-        .expect("Failed to convert proof type to Rust string")
-        .to_owned();
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to convert proof type to Rust string: {:?}", e));
+            return std::ptr::null_mut();
+        }
+    };
     info!("Using proof type: {}", proof_type);
 
     let vk = if proof_type == "ultra_honk" {
@@ -707,7 +786,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
             },
             Err(e) => {
                 error!("Failed to get verification key: {:?}", e);
-                panic!("Failed to get verification key: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get verification key: {:?}", e));
+                return std::ptr::null_mut();
             }
         }
     } else if proof_type == "ultra_honk_keccak" {
@@ -718,12 +798,14 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
             },
             Err(e) => {
                 error!("Failed to get verification key: {:?}", e);
-                panic!("Failed to get verification key: {:?}", e)
+                throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to get verification key: {:?}", e));
+                return std::ptr::null_mut();
             }
         }
     } else {
         error!("Unsupported proof type: {}", proof_type);
-        panic!("Ultra honk and Ultra honk keccak are the only proof types supported for now");
+        throw_exception(&mut env, "java/lang/IllegalArgumentException", "Ultra honk and Ultra honk keccak are the only proof types supported for now");
+        return std::ptr::null_mut();
     };
 
     let vk_str = hex::encode(&vk);
@@ -734,7 +816,8 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
         Ok(s) => s,
         Err(e) => {
             error!("Failed to create Java string for verification key: {:?}", e);
-            panic!("Failed to create Java string for vk: {:?}", e)
+            throw_exception(&mut env, "java/lang/RuntimeException", &format!("Failed to create Java string for vk: {:?}", e));
+            return std::ptr::null_mut();
         }
     };
 

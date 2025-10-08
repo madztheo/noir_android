@@ -16,7 +16,7 @@ class Noir {
             }
         }
         
-        external fun prove(circuitBytecode: String, initialWitness: Map<String, String>, vk: String, proofType: String?, lowMemoryMode: Boolean): String
+        external fun prove(circuitBytecode: String, initialWitness: Map<String, String>, vk: String, proofType: String?, lowMemoryMode: Boolean, storageCap: Long): String
 
         external fun verify(proof: String, vk: String, proofType: String?): Boolean
 
@@ -26,6 +26,6 @@ class Noir {
         
         external fun execute(circuitBytecode: String, initialWitness: Map<String, String>): Array<String>
 
-        external fun get_verification_key(circuitBytecode: String, proofType: String?, lowMemoryMode: Boolean): String
+        external fun get_verification_key(circuitBytecode: String, proofType: String?, lowMemoryMode: Boolean, storageCap: Long): String
     }
 }

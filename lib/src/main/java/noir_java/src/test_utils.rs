@@ -20,7 +20,7 @@ pub fn create_test_witness_map() -> WitnessMap<FieldElement> {
 }
 
 /// Simple addition circuit for testing
-pub const TEST_CIRCUIT_BYTECODE: &str = "H4sIAAAAAAAA/62QQQqAMAwErfigpEna5OZXLLb/f4KKLZbiTQdCQg7Dsm66mc9x00O717rhG9ico5cgMOfoMxJu4C2pAEsKioqisnslysoaLVkEQ6aMRYxKFc//ZYQr29L10XfhXv4jB52E+OpMAQAA";
+pub const TEST_CIRCUIT_BYTECODE: &str = "H4sIAAAAAAAA/42NsQmAMBBF74KDWGqnOIIIVmJpYyHYWChiZ5kRxAWcQnScdJY29gZNSAgp8or7x93/fIQfT2jfdAPhiqCQuw9OoBxmLmqLicVbeJTZTmlVB8mVz+e4pOxZb/4n7h2fVy9Ey93kBZmTjiLsAAAA";
 
 /// Converts a HashMap<String, String> to a WitnessMap
 pub fn convert_to_witness_map(map: HashMap<String, String>) -> WitnessMap<FieldElement> {

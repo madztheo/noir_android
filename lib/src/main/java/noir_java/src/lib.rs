@@ -1,8 +1,8 @@
 use jni::objects::{JClass, JObject, JString};
-use jni::sys::{jboolean, jobject, jint};
+use jni::sys::{jboolean, jobject, jint, jlong};
 use jni::JNIEnv;
 use noir_rs::{
-    native_types::{Witness, WitnessMap},
+    acir::native_types::{Witness, WitnessMap},
     barretenberg::{
         prove::{prove_ultra_honk, prove_ultra_honk_keccak},
         verify::{verify_ultra_honk, get_ultra_honk_verification_key, verify_ultra_honk_keccak, get_ultra_honk_keccak_verification_key},
@@ -397,14 +397,16 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
     witness_jobject: JObject<'local>,
     vk_jstr: JString<'local>,
     proof_type_jstr: JString<'local>,
-    low_memory_mode: jboolean
+    low_memory_mode: jboolean,
+    max_storage_usage: jlong
 ) -> jobject {
     init_logger();
     info!("Starting proof generation");
     
     let use_low_memory = low_memory_mode != 0;
     debug!("Low memory mode: {}", use_low_memory);
-    
+    let storage_cap = max_storage_usage as u64;
+    debug!("Max storage usage: {}", storage_cap);
     // Use more descriptive variable names and handle errors gracefully
     let witness_map = match env.get_map(&witness_jobject) {
         Ok(map) => {
@@ -559,7 +561,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
 
     let proof = if proof_type == "ultra_honk" { 
         info!("Generating UltraHonk proof");
-        match prove_ultra_honk(&circuit_bytecode, witness_map, verification_key, use_low_memory) {
+        match prove_ultra_honk(&circuit_bytecode, witness_map, verification_key, use_low_memory, Some(storage_cap)) {
             Ok(p) => {
                 info!("Proof generation successful, proof size: {} bytes", p.len());
                 p
@@ -572,7 +574,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_prove<'local
         }
     } else if proof_type == "ultra_honk_keccak" {
         info!("Generating UltraHonkKeccak proof");
-        match prove_ultra_honk_keccak(&circuit_bytecode, witness_map, verification_key, false, use_low_memory) {
+        match prove_ultra_honk_keccak(&circuit_bytecode, witness_map, verification_key, false, use_low_memory, Some(storage_cap)) {
             Ok(p) => {
                 info!("Proof generation successful, proof size: {} bytes", p.len());
                 p
@@ -734,13 +736,16 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
     _class: JClass<'local>,
     circuit_bytecode_jstr: JString<'local>,
     proof_type_jstr: JString<'local>,
-    low_memory_mode: jboolean
+    low_memory_mode: jboolean,
+    max_storage_usage: jlong
 ) -> jobject {
     init_logger();
     info!("Getting verification key");
     
     let use_low_memory = low_memory_mode != 0;
     debug!("Low memory mode: {}", use_low_memory);
+    let storage_cap = max_storage_usage as u64;
+    debug!("Max storage usage: {}", storage_cap);
     
     let circuit_bytecode = match env.get_string(&circuit_bytecode_jstr) {
         Ok(s) => s,
@@ -779,7 +784,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
     info!("Using proof type: {}", proof_type);
 
     let vk = if proof_type == "ultra_honk" {
-        match get_ultra_honk_verification_key(&circuit_bytecode, use_low_memory) {
+        match get_ultra_honk_verification_key(&circuit_bytecode, use_low_memory, Some(storage_cap)) {
             Ok(key) => {
                 info!("Successfully retrieved verification key, size: {} bytes", key.len());
                 key
@@ -791,7 +796,7 @@ pub extern "system" fn Java_com_noirandroid_lib_Noir_00024Companion_get_1verific
             }
         }
     } else if proof_type == "ultra_honk_keccak" {
-        match get_ultra_honk_keccak_verification_key(&circuit_bytecode, false, use_low_memory) {
+        match get_ultra_honk_keccak_verification_key(&circuit_bytecode, false, use_low_memory, Some(storage_cap)) {
             Ok(key) => {
                 info!("Successfully retrieved verification key, size: {} bytes", key.len());
                 key

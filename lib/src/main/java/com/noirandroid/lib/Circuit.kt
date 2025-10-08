@@ -54,12 +54,12 @@ data class FileMap(
     val path: String
 )
 
-class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0, public var size: Int = 0, public var lowMemoryMode: Boolean = false) {
+class Circuit(public val bytecode: String, public val manifest: CircuitManifest, public var num_points: Int = 0, public var size: Int = 0, public var lowMemoryMode: Boolean = false, public var storageCap: Long = 0) {
 
     companion object {
-        fun fromJsonManifest(jsonManifest: String, size: Int? = null, lowMemoryMode: Boolean = false): Circuit {
+        fun fromJsonManifest(jsonManifest: String, size: Int? = null, lowMemoryMode: Boolean = false, storageCap: Long = 0): Circuit {
             val manifest: CircuitManifest = Gson().fromJson(jsonManifest, CircuitManifest::class.java)
-            return Circuit(manifest.bytecode, manifest, 0, size ?: 0, lowMemoryMode)
+            return Circuit(manifest.bytecode, manifest, 0, size ?: 0, lowMemoryMode, storageCap)
         }
     }
 
@@ -105,7 +105,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
         }
         try {
             val witness = generateWitnessMap(initialWitness, manifest.abi.parameters, 0)
-            return Noir.prove(bytecode, witness, vk ?: getVerificationKey(), proofType, lowMemoryMode)
+            return Noir.prove(bytecode, witness, vk ?: getVerificationKey(), proofType, lowMemoryMode, storageCap)
         } catch (e: Throwable) {
             Log.e("Circuit", "Failed to prove circuit: ${e.message}", e)
             throw RuntimeException("Circuit proving failed: ${e.message}", e)
@@ -126,7 +126,7 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
 
     fun getVerificationKey(proofType: String? = "ultra_honk"): String {
         try {
-            return Noir.get_verification_key(bytecode, proofType, lowMemoryMode)
+            return Noir.get_verification_key(bytecode, proofType, lowMemoryMode, storageCap)
         } catch (e: Throwable) {
             Log.e("Circuit", "Failed to get verification key: ${e.message}", e)
             throw RuntimeException("Failed to get verification key: ${e.message}", e)

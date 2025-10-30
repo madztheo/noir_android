@@ -204,31 +204,57 @@ class Circuit(public val bytecode: String, public val manifest: CircuitManifest,
                         throw IllegalArgumentException("Expected integer for parameter: ${parameter.name}. Got ${value.javaClass}")
                     }
                 }
+                "boolean" -> {
+                    if (value is Boolean) {
+                        witness[index.toString()] = if (value) "0x1" else "0x0"
+                        index++
+                    } else if (value is Double) {
+                        witness[index.toString()] = if (value == 1.0) "0x1" else "0x0"
+                        index++
+                    } else {
+                        throw IllegalArgumentException("Expected boolean for parameter: ${parameter.name}. Got ${value.javaClass}")
+                    }
+                }
                 "array" -> {
                     if (value is List<*>) {
-                        // Flatten the multi-dimensional array (if not multi-dimensional, it will return the same array)
-                        var flattenedArray = flattenMultiDimensionalArray(value as List<Any>, parameter.type.type!!)
-                        // Compute the expected length of the array
-                        var totalLength = computeTotalLengthOfArray(parameter.type)
-                        if (flattenedArray.size != totalLength) {
-                            throw IllegalArgumentException("Expected array of length ${parameter.type.length} for parameter: ${parameter.name}. Instead got ${flattenedArray.size}")
-                        }
-                        for (element in flattenedArray) {
-                            if (element is Double) {
-                                witness[index.toString()] = "0x${(element.toLong()).toString(16)}"
-                                index++
-                            } else if(element is String) {
-                                // Check the number is in hexadecimal format
-                                if (!element.startsWith("0x")) {
-                                    throw IllegalArgumentException("Expected hexadecimal number for parameter: ${parameter.name}")
+                        if (parameter.type.type != null && parameter.type.type!!.kind == "struct") {
+                            for (element in value) {
+                                if (element is Map<*, *>) {
+                                    val struct = element as Map<String, Any>
+                                    val structWitness = generateWitnessMap(struct, parameter.type.type!!.fields!!, index)
+                                    for ((key, witnessValue) in structWitness) {
+                                        witness[key] = witnessValue
+                                        index++
+                                    }
+                                } else {
+                                    throw IllegalArgumentException("Expected map of structs for parameter: ${parameter.name}. Got ${element?.javaClass}")
                                 }
-                                witness[index.toString()] = element
-                                index++
-                            
-                            } else {
-                                throw IllegalArgumentException("Unexpected array type for parameter: ${parameter.name}. Got ${element.javaClass}")
                             }
+                        } else {
+                            // Flatten the multi-dimensional array (if not multi-dimensional, it will return the same array)
+                            var flattenedArray = flattenMultiDimensionalArray(value as List<Any>, parameter.type.type!!)
+                            // Compute the expected length of the array
+                            var totalLength = computeTotalLengthOfArray(parameter.type)
+                            if (flattenedArray.size != totalLength) {
+                                throw IllegalArgumentException("Expected array of length ${parameter.type.length} for parameter: ${parameter.name}. Instead got ${flattenedArray.size}")
+                            }
+                            for (element in flattenedArray) {
+                                if (element is Double) {
+                                    witness[index.toString()] = "0x${(element.toLong()).toString(16)}"
+                                    index++
+                                } else if(element is String) {
+                                    // Check the number is in hexadecimal format
+                                    if (!element.startsWith("0x")) {
+                                        throw IllegalArgumentException("Expected hexadecimal number for parameter: ${parameter.name}")
+                                    }
+                                    witness[index.toString()] = element
+                                    index++
+                                
+                                } else {
+                                    throw IllegalArgumentException("Unexpected array type for parameter: ${parameter.name}. Got ${element.javaClass}")
+                                }
 
+                            }
                         }
                     } else {
                         throw IllegalArgumentException("Expected array of integers for parameter: ${parameter.name}. Got ${value.javaClass}")

@@ -58,7 +58,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v1.0.0-beta.22-1"
+                version = "v1.0.0-beta.22-2"
             }
         }
     }
@@ -66,6 +66,7 @@ afterEvaluate {
 
 val rustLibName = "noir_java" // Adjust based on your library name
 val rustLibPath = "src/main/java/$rustLibName" // Adjust based on your library name
+val releaseUrl = "https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.22-2"
 
 // Find NDK toolchain bin directory to make cross-compilation tools available to cargo
 val ndkToolchainBin: String by lazy {
@@ -78,38 +79,63 @@ val ndkToolchainBin: String by lazy {
     "$ndkDir/toolchains/llvm/prebuilt/$hostTag/bin"
 }
 
+// Download libc++.so (standard LLVM libc++ with std::__1 namespace) for each ABI.
+// The pre-built barretenberg uses standard LLVM libc++ (not the NDK's __ndk1
+// variant), so we ship it as libc++.so (matching its SONAME) to avoid conflicts
+// with the NDK's libc++_shared.so in consuming apps. It is also needed at link
+// time: the NDK sysroot has no libc++.so, so -lc++ (emitted by barretenberg-rs)
+// only resolves through the link search path added in buildRust, giving the
+// final binary NEEDED:libc++.so instead of NEEDED:libc++_shared.so.
+tasks.register("fetchLibCpp") {
+    doLast {
+        download.run {
+            src("$releaseUrl/libc++_arm64-v8a.so")
+            dest("src/main/jniLibs/arm64-v8a/libc++.so")
+            overwrite(false)
+        }
+        download.run {
+            src("$releaseUrl/libc++_x86_64.so")
+            dest("src/main/jniLibs/x86_64/libc++.so")
+            overwrite(false)
+        }
+    }
+}
+
 tasks.register("buildRust") {
+    dependsOn("fetchLibCpp")
     doLast {
         val pathWithNdk = "$ndkToolchainBin:${System.getenv("PATH")}"
-        // Use the Android-specific barretenberg static library.
-        // Workaround for barretenberg-rs build.rs matching "linux" before
-        // "android" in the aarch64-linux-android target triple, which causes
-        // it to download the wrong (generic Linux) build.
-        val bbAndroidDir = file("$rustLibPath/bb-android")
+        // The barretenberg static library (libbb-external.a) is downloaded by
+        // barretenberg-rs' build.rs. The jniLibs dir is passed as a link search
+        // path so -lc++ resolves to the libc++.so we ship (see fetchLibCpp).
         // Android arm64
         exec {
             workingDir(file(rustLibPath))
             environment("PATH", pathWithNdk)
-            environment("BB_LIB_DIR", file("$bbAndroidDir/arm64").absolutePath)
-            commandLine("cargo", "build", "--release", "--target", "aarch64-linux-android")
+            commandLine(
+                "cargo", "rustc", "--release", "--target", "aarch64-linux-android",
+                "--", "-L", "native=${file("src/main/jniLibs/arm64-v8a").absolutePath}"
+            )
         }
         // Android x86_64
         exec {
             workingDir(file(rustLibPath))
             environment("PATH", pathWithNdk)
-            environment("BB_LIB_DIR", file("$bbAndroidDir/x86_64").absolutePath)
-            commandLine("cargo", "build", "--release", "--target", "x86_64-linux-android")
+            commandLine(
+                "cargo", "rustc", "--release", "--target", "x86_64-linux-android",
+                "--", "-L", "native=${file("src/main/jniLibs/x86_64").absolutePath}"
+            )
         }
     }
 }
 
 tasks.register("copyRustLibs") {
+    dependsOn("fetchLibCpp")
     if (System.getenv("BUILD_TYPE") == "MANUAL") {
         dependsOn("buildRust")
     }
     doLast {
-        val buildType = System.getenv("BUILD_TYPE")
-        if (buildType == "MANUAL") {
+        if (System.getenv("BUILD_TYPE") == "MANUAL") {
             // Copy the compiled library (.so file) to the appropriate JNI folder
             copy {
                 from("$rustLibPath/target/aarch64-linux-android/release")
@@ -123,7 +149,6 @@ tasks.register("copyRustLibs") {
             }
         } else {
             // Download the .so files from the GitHub release
-            val releaseUrl = "https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.22-1"
             download.run {
                 src("$releaseUrl/libnoir_java_arm64-v8a.so")
                 dest("src/main/jniLibs/arm64-v8a/libnoir_java.so")
@@ -132,33 +157,6 @@ tasks.register("copyRustLibs") {
             download.run {
                 src("$releaseUrl/libnoir_java_x86_64.so")
                 dest("src/main/jniLibs/x86_64/libnoir_java.so")
-                overwrite(false)
-            }
-        }
-        // Copy or download libc++.so (standard LLVM libc++ with std::__1 namespace)
-        // for each ABI. The pre-built barretenberg uses standard LLVM libc++ (not
-        // the NDK's __ndk1 variant), so we ship it as libc++.so (matching its
-        // SONAME) to avoid conflicts with the NDK's libc++_shared.so in consuming apps.
-        if (buildType == "MANUAL") {
-            val bbAndroidDir = file("$rustLibPath/bb-android")
-            copy {
-                from(file("$bbAndroidDir/arm64/libc++.so"))
-                into("src/main/jniLibs/arm64-v8a")
-            }
-            copy {
-                from(file("$bbAndroidDir/x86_64/libc++.so"))
-                into("src/main/jniLibs/x86_64")
-            }
-        } else {
-            val libcppUrl = "https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.22-1"
-            download.run {
-                src("$libcppUrl/libc++_arm64-v8a.so")
-                dest("src/main/jniLibs/arm64-v8a/libc++.so")
-                overwrite(false)
-            }
-            download.run {
-                src("$libcppUrl/libc++_x86_64.so")
-                dest("src/main/jniLibs/x86_64/libc++.so")
                 overwrite(false)
             }
         }

@@ -16,6 +16,3 @@ local.properties
 libnoir_java.so
 .idea
 .vscode
-
-
-lib/src/main/java/noir_java/bb-android

@@ -58,7 +58,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = "com.github.madztheo"
                 artifactId = "noir_android"
-                version = "v1.0.0-beta.22-2"
+                version = "v1.0.0-rc.3-1"
             }
         }
     }
@@ -66,7 +66,7 @@ afterEvaluate {
 
 val rustLibName = "noir_java" // Adjust based on your library name
 val rustLibPath = "src/main/java/$rustLibName" // Adjust based on your library name
-val releaseUrl = "https://github.com/madztheo/noir_android/releases/download/v1.0.0-beta.22-2"
+val releaseUrl = "https://github.com/madztheo/noir_android/releases/download/v1.0.0-rc.3-1"
 
 // Find NDK toolchain bin directory to make cross-compilation tools available to cargo
 val ndkToolchainBin: String by lazy {
